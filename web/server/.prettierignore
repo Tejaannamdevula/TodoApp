@@ -1,0 +1,16 @@
+# Ignore VSCode workspace settings folder
+.vscode
+
+# Ignore node_modules as they contain third-party packages
+/node_modules
+
+# Ignore dist folder where compiled code is output
+/dist
+
+# Ignore environment variable files
+.env
+*.env
+.env.*
+
+# Ignore log files
+*.log
