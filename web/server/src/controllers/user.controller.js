@@ -15,13 +15,17 @@ const registerSchema = zod.object({
 const generateAcessAndRefreshTokens = async function (userId) {
   try {
     const user = await User.findById(userId);
-    const refreshToken = user.generateRefreshToken();
-    const acessToken = user.generateAcessToken();
+    const refreshToken = await user.generateRefreshToken();
+    const accessToken = await user.generateAcessToken();
 
+    // console.log("access token is ", accessToken);
+    // console.log("refresh token is ", refreshToken);
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
+
+    console.log("users refresh token is ", user.refreshToken);
     return {
-      acessToken,
+      accessToken,
       refreshToken,
     };
   } catch (error) {
@@ -32,12 +36,12 @@ const generateAcessAndRefreshTokens = async function (userId) {
   }
 };
 
-const registerUser = asyncHandler(async (req, res, next) => {
+const registerUser = asyncHandler(async (req, res) => {
   try {
     console.log("helelo");
 
     const validatedData = registerSchema.parse(req.body);
-    const { fullname, email, username, password } = req.body;
+    const { fullname, email, username, password } = validatedData;
 
     const userExist = await User.findOne({
       $or: [{ email }, { username }],
@@ -53,7 +57,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       password,
     });
 
-    const createdUser = await User.findById(user_id).select(
+    const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
     );
 
@@ -66,14 +70,12 @@ const registerUser = asyncHandler(async (req, res, next) => {
       .json(new ApiResponse(201, "User registered", createdUser));
   } catch (error) {
     if (error instanceof zod.ZodError) {
-      const ValidationError = new ApiError(
-        400,
-        "validation failed",
-        error.errors
-      );
-      next(ValidationError);
+      throw new ApiError(400, "validation failed", error.errors);
     } else {
-      next(error);
+      throw new ApiError(
+        400,
+        error?.message || "Something went wrong when registering"
+      );
     }
   }
 });
@@ -92,12 +94,13 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "username or email is required");
   }
 
-  const user = await User.findOne({ $or: ["username", "email"] });
+  const user = await User.findOne({ $or: [{ username }, { email }] });
 
   if (!user) {
     throw new ApiError(400, "User doesnt exist");
   }
 
+  console.log("passoword is ", user.password);
   const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
@@ -120,7 +123,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("acessToken", accessToken, options)
+    .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(
