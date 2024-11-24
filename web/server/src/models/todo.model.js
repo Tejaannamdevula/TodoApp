@@ -10,7 +10,7 @@ const todoSchema = new Schema(
     description: {
       type: String,
     },
-    category: {
+    label: {
       type: String,
     },
     priority: {
@@ -20,7 +20,7 @@ const todoSchema = new Schema(
     },
     progress: {
       type: String,
-      enum: ["Not Started", "In Progress", "Completed"],
+      enum: ["Todo", "Doing", "Completed"],
       required: true,
     },
     dueDate: {
