@@ -1,22 +1,24 @@
-import { asyncHandler } from "../utils/asyncHandler";
-import { ApiError } from "../utils/ApiError";
-import { Todo } from "../models/todo.model";
-import { User } from "../models/user.model";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { Todo } from "../models/todo.model.js";
+import { User } from "../models/user.model.js";
 import zod from "zod";
-import { ApiResponse } from "../utils/ApiResponse";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-const todoSchema = zod.object({
+export const todoSchema = zod.object({
   title: zod.string().min(1, "Title is required"),
   description: zod.string().optional(),
+  label: zod.string().optional(),
+  priority: zod.enum(["Low", "Medium", "High"]).default("Medium"),
+  progress: zod.enum(["Todo", "Doing", "Completed"]).default("Todo"),
+  dueDate: zod.string().datetime({ message: "Invalid date format" }), // Handle ISO date strings
   completed: zod.boolean().default(false),
-  duedate: zod.string(),
-  priority: zod.number(),
 });
 
 const createTodo = asyncHandler(async (req, res) => {
   try {
     const validateData = todoSchema.parse(req.body);
-    const { title, description, completed, duedate, priority } = validateData;
+    const { title, description, completed, dueDate, priority } = validateData;
 
     const userId = req.user._id;
     const userExist = await User.findById(userId);
@@ -29,14 +31,14 @@ const createTodo = asyncHandler(async (req, res) => {
       title,
       description,
       completed,
-      duedate,
+      dueDate,
       priority,
       userId,
     });
 
     return res
       .status(201)
-      .json(new ApiResponse(201, "Todo created successfully", todo));
+      .json(new ApiResponse(201, todo, "Todo created successfully"));
   } catch (error) {
     if (error instanceof zod.ZodError) {
       throw new ApiError(400, "Validation Error", error.errors);
@@ -51,11 +53,11 @@ const createTodo = asyncHandler(async (req, res) => {
 const getTodos = asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
-    const todos = await todos.find({ userId });
-
+    const todos = await Todo.find({ userId });
+    console.log("aa", todos);
     return res
       .status(200)
-      .json(new ApiResponse(200, "Todos fetched successfully ", todos));
+      .json(new ApiResponse(200, todos, "Todos fetched successfully"));
   } catch (error) {
     throw new ApiError(
       400,
@@ -76,7 +78,7 @@ const getTodoById = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, "Todo fetched successfully"));
+      .json(new ApiResponse(200, todo, "Todo fetched successfully"));
   } catch (error) {
     throw new ApiError(
       400,
@@ -106,13 +108,17 @@ const getFilteredTodos = asyncHandler(async (req, res) => {
 
     const upcoming = todos.filter((todo) => todo.dueDate > endOfToday);
 
-    return res
-      .status(200)
-      .json(new ApiResponse(200, "Todo fetched Successfully"), {
-        overDue,
-        today,
-        upcoming,
-      });
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          overDue,
+          today,
+          upcoming,
+        },
+        "Todo fetched Successfully"
+      )
+    );
   } catch (error) {
     throw new ApiError(
       400,
@@ -139,7 +145,7 @@ const updateTodo = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, "Todo updated successfully", updatedTodo));
+      .json(new ApiResponse(200, updatedTodo, "Todo updated successfully"));
   } catch (error) {
     if (error instanceof zod.ZodError) {
       throw new ApiError(400, "Validation Error", error.errors);
@@ -162,7 +168,7 @@ const deleteTodo = asyncHandler(async function (req, res) {
     }
     return res
       .status(200)
-      .json(new ApiResponse(200, "Todo deleted Successfully", deleteTodo));
+      .json(new ApiResponse(200, deleteTodo, "Todo deleted Successfully"));
   } catch (error) {}
 });
 
@@ -171,7 +177,7 @@ const markTodoAsCompleted = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const userId = req.user._id;
 
-    const updatedTodo = await findOneAndUpdate(
+    const updatedTodo = await Todo.findOneAndUpdate(
       { _id: id, userId },
       { $set: { completed: true, progress: "Completed" } },
       { new: true }
@@ -186,8 +192,8 @@ const markTodoAsCompleted = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          "Todo marked as completed successfully",
-          updatedTodo
+          updatedTodo,
+          "Todo marked as completed successfully"
         )
       );
   } catch (error) {

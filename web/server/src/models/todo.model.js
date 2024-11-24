@@ -17,11 +17,12 @@ const todoSchema = new Schema(
       type: String,
       enum: ["Low", "Medium", "High"],
       required: true,
+      default: "Medium",
     },
     progress: {
       type: String,
       enum: ["Todo", "Doing", "Completed"],
-      required: true,
+      default: "Todo",
     },
     dueDate: {
       type: Date,
@@ -29,7 +30,7 @@ const todoSchema = new Schema(
     },
     completed: {
       type: Boolean,
-      required: true,
+      default: false,
     },
     userId: {
       type: Schema.Types.ObjectId,
