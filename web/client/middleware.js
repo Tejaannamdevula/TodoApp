@@ -9,13 +9,6 @@ export async function middleware(request) {
     if (!accessToken) {
       return NextResponse.redirect(new URL("/auth/signin", request.url));
     }
-
-    try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-      await jwtVerify(accessToken, secret);
-    } catch (error) {
-      return NextResponse.redirect(new URL("/auth/signin", request.url));
-    }
   }
 
   if (
