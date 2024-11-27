@@ -2,7 +2,7 @@ import config from "@/app/config/config";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { persist } from "zustand/middleware/persist";
-
+import useTodoStore from "./todoStore";
 const useAuthStore = create(
   persist(
     immer((set, get) => ({
@@ -62,11 +62,8 @@ const useAuthStore = create(
 
             const user = data.message;
 
-            set((state) => {
-              state.user = user;
-              state.accessToken = null;
-              state.refreshToken = null;
-            });
+            set({ user, accessToken: null, refreshToken: null });
+
             return true;
           } else {
             const errorData = await response.json();
@@ -89,9 +86,9 @@ const useAuthStore = create(
           });
 
           if (response.ok) {
-            set((state) => {
-              (state.user = null), (state.accessToken = null);
-            });
+            set({ user: null, accessToken: null, refreshToken: null });
+            localStorage.clear();
+            useTodoStore.getState().clearTodos();
             return true;
           } else {
             const errorData = await response.json();
